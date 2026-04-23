@@ -2,40 +2,56 @@ import shutil
 import pandas as pd
 import pulp
 
+from nba_fantasy_optimizer.rules import SALARY_CAP, ROSTER_SLOTS, SLOT_ELIGIBILITY
 
-def optimize_lineup(df: pd.DataFrame, salary_cap: int, roster_size: int) -> pd.DataFrame:
-    if len(df) < roster_size:
+
+def is_eligible_for_slot(player_positions: list[str], slot: str) -> bool:
+    return len(set(player_positions) & SLOT_ELIGIBILITY[slot]) > 0
+
+
+def optimize_lineup(df: pd.DataFrame, salary_cap: int = SALARY_CAP) -> pd.DataFrame:
+    if len(df) < len(ROSTER_SLOTS):
         raise ValueError(
-            f"Not enough players in dataset to fill roster of size {roster_size}."
+            f"Not enough players in dataset to fill {len(ROSTER_SLOTS)} roster slots."
         )
 
-    min_possible_salary = df["salary"].nsmallest(roster_size).sum()
-    if min_possible_salary > salary_cap:
-        raise ValueError(
-            f"Infeasible setup: cheapest possible {roster_size}-player lineup costs "
-            f"{min_possible_salary}, which exceeds salary cap {salary_cap}."
-        )
+    model = pulp.LpProblem("NBA_DraftKings_Lineup", pulp.LpMaximize)
 
-    model = pulp.LpProblem("NBA_Lineup", pulp.LpMaximize)
+    # Decision variable:
+    # x[(i, slot)] = 1 if player i is assigned to roster slot
+    x = {}
+    for i in df.index:
+        for slot in ROSTER_SLOTS:
+            if is_eligible_for_slot(df.loc[i, "position_list"], slot):
+                x[(i, slot)] = pulp.LpVariable(f"x_{i}_{slot}", cat="Binary")
 
-    player_vars = {
-        i: pulp.LpVariable(f"player_{i}", cat="Binary")
-        for i in df.index
-    }
-
+    # Objective: maximize projected fantasy points
     model += pulp.lpSum(
-        df.loc[i, "projected_points"] * player_vars[i]
-        for i in df.index
-    )
+        df.loc[i, "projected_points"] * x[(i, slot)]
+        for (i, slot) in x
+    ), "Total_Projected_Points"
 
-    model += pulp.lpSum(
-        df.loc[i, "salary"] * player_vars[i]
-        for i in df.index
-    ) <= salary_cap
+    # Fill each roster slot exactly once
+    for slot in ROSTER_SLOTS:
+        model += pulp.lpSum(
+            x[(i, slot)]
+            for i in df.index
+            if (i, slot) in x
+        ) == 1, f"Fill_{slot}"
 
+    # Each player can be used at most once
+    for i in df.index:
+        model += pulp.lpSum(
+            x[(i, slot)]
+            for slot in ROSTER_SLOTS
+            if (i, slot) in x
+        ) <= 1, f"Use_Player_{i}_At_Most_Once"
+
+    # Salary cap
     model += pulp.lpSum(
-        player_vars[i] for i in df.index
-    ) == roster_size
+        df.loc[i, "salary"] * x[(i, slot)]
+        for (i, slot) in x
+    ) <= salary_cap, "Salary_Cap"
 
     cbc_path = shutil.which("cbc")
     if cbc_path is None:
@@ -47,8 +63,22 @@ def optimize_lineup(df: pd.DataFrame, salary_cap: int, roster_size: int) -> pd.D
     if pulp.LpStatus[status] != "Optimal":
         raise RuntimeError(f"Solver failed with status: {pulp.LpStatus[status]}")
 
-    chosen = df[
-        [player_vars[i].value() == 1 for i in df.index]
-    ].copy()
+    lineup_rows = []
+    for (i, slot), var in x.items():
+        if var.value() == 1:
+            lineup_rows.append({
+                "slot": slot,
+                "player_name": df.loc[i, "player_name"],
+                "team": df.loc[i, "team"],
+                "eligible_positions": df.loc[i, "eligible_positions"],
+                "salary": df.loc[i, "salary"],
+                "projected_points": df.loc[i, "projected_points"],
+            })
 
-    return chosen
+    lineup = pd.DataFrame(lineup_rows)
+
+    slot_order = {slot: idx for idx, slot in enumerate(ROSTER_SLOTS)}
+    lineup["slot_order"] = lineup["slot"].map(slot_order)
+    lineup["value_per_1000"] = lineup["projected_points"] / (lineup["salary"] / 1000)
+
+    return lineup.sort_values("slot_order").drop(columns="slot_order").reset_index(drop=True)

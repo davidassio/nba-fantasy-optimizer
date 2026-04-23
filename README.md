@@ -4,76 +4,112 @@
 
 Python-based optimization engine that generates NBA fantasy lineups by maximizing projected fantasy points under salary cap and roster constraints.
 
-This project applies concepts from applied mathematics, operations research, and data science to a real decision-making problem.
+The project applies concepts from applied mathematics, operations research, and data science to a real decision-making problem.
+
+Rather than stopping at prediction, this optimizer converts player projections into actionable lineup decisions under realistic contest rules.
 
 ---
 
 ## Why This Project
 
-Many analytics projects stop at prediction.
+Many data science projects focus only on forecasting outcomes.
 
-This project focuses on **optimization** — converting projected outcomes into actionable decisions while respecting real-world constraints.
+This project focuses on **optimization** — selecting the best combination of decisions while satisfying constraints.
 
-Fantasy lineup construction is a strong example of:
+NBA fantasy lineup construction is a strong example because it combines:
 
 - constrained optimization
-- tradeoff analysis
 - resource allocation
-- quantitative decision-making
+- tradeoff analysis
+- combinatorial decision-making
+- sports analytics
 
 ---
 
-## Current Version (V1)
+## Current Version (V2)
 
-Version 1 uses a local CSV dataset containing:
+Version 2 models a DraftKings-style NBA classic lineup with the following roster slots:
 
-- player name
-- team
-- position
-- salary
-- projected fantasy points
+- PG
+- SG
+- SF
+- PF
+- C
+- G
+- F
+- UTIL
 
-The optimizer selects the highest projected lineup subject to:
+Current functionality includes:
 
-- salary cap
-- roster size
-- binary player selection decisions
+- salary cap optimization
+- slot-based lineup construction
+- multi-position player eligibility (ex: PG/SG, PF/C)
+- no duplicate player usage
+- configurable contest rules
+- exact optimization using integer programming
 
 ---
 
 ## Mathematical Formulation
 
+### Decision Variable
+
 Let:
 
-- $x_i = 1$ if player $i$ is selected
-- $x_i = 0$ otherwise
+$$
+x_{i,s} =
+\begin{cases}
+1, & \text{if player } i \text{ is assigned to slot } s \\
+0, & \text{otherwise}
+\end{cases}
+$$
+
+---
 
 ### Objective
 
-$$
-\max \sum_i p_i x_i
-$$
-
-### Subject to
+Maximize projected fantasy points:
 
 $$
-\sum_i s_i x_i \leq C
-$$
-
-$$
-\sum_i x_i = R
-$$
-
-$$
-x_i \in \{0,1\}
+\max \sum_{i,s} p_i x_{i,s}
 $$
 
 Where:
 
-- $p_i$ = projected points
-- $s_i$ = salary
-- $C$ = salary cap
-- $R$ = roster size
+- $p_i$ = projected fantasy points for player $i$
+
+---
+
+### Subject To
+
+#### Salary Cap
+
+$$
+\sum_{i,s} c_i x_{i,s} \leq C
+$$
+
+#### Fill Every Slot Exactly Once
+
+$$
+\sum_i x_{i,s} = 1 \quad \forall s
+$$
+
+#### Use Each Player At Most Once
+
+$$
+\sum_s x_{i,s} \leq 1 \quad \forall i
+$$
+
+#### Binary Decision Variables
+
+$$
+x_{i,s} \in \{0,1\}
+$$
+
+Where:
+
+- $c_i$ = player salary
+- $C$ = total salary cap
 
 ---
 
@@ -85,15 +121,36 @@ Where:
 - CBC Solver
 - VSCode
 - Git
+- GitHub
+
+---
+
+## Example Output
+
+```text
+slot   player_name        salary   projected_points
+PG     Malik Monk         6200     31.0
+SG     Josh Hart          6400     32.4
+SF     P.J. Washington    5700     26.9
+PF     Naz Reid           5600     28.3
+C      Myles Turner       6900     34.2
+G      Grayson Allen      5200     24.8
+F      RJ Barrett         6100     30.1
+UTIL   Zion Williamson    7900     39.4
+
+Total Salary: 50000
+Projected Points: 247.1
+```
 
 ---
 
 ## Implementation Highlights
 
-- Installed and configured CBC solver on Apple Silicon via Homebrew
-- Added feasibility checks for impossible lineup constraints
+- Designed lineup construction as a binary assignment optimization problem
+- Implemented multi-position eligibility and flex roster slots
+- Integrated CBC solver on Apple Silicon via Homebrew
 - Structured project using a modular `src/` package layout
-- Built reusable optimization pipeline using pandas + PuLP
+- Added feasibility-aware optimization workflow
 
 ---
 
@@ -106,22 +163,22 @@ PYTHONPATH=src python src/nba_fantasy_optimizer/main.py
 
 ---
 
-## Example Output
+## Version History
 
-```text
-Total Salary: 70000
-Projected Points: 348.9
-```
+- **V1** — Basic optimizer with salary cap + roster size constraints
+- **V2** — Slot-assignment optimizer with multi-position eligibility
 
 ---
 
 ## Roadmap
 
-- [x] V1 Salary-cap lineup optimizer
-- [ ] V2 Positional roster constraints
-- [ ] V3 Multi-lineup generation
-- [ ] V4 Live NBA data integration
-- [ ] V5 Historical backtesting
+- [x] V1 Basic lineup optimizer
+- [x] V2 Slot-based optimizer
+- [ ] V3 Realistic salary / projection calibration
+- [ ] V4 Multiple lineup generation
+- [ ] V5 Exposure constraints
+- [ ] V6 Live NBA data integration
+- [ ] V7 Historical backtesting dashboard
 
 ---
 
@@ -129,6 +186,9 @@ Projected Points: 348.9
 
 - integer programming in practice
 - optimization under constraints
+- applied mathematics for decision systems
 - data pipeline design
-- debugging and environment management
+- sports analytics modeling
+- software engineering workflow
 - translating analytics into decisions
+```
