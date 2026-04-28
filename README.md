@@ -184,11 +184,53 @@ PYTHONPATH=src python src/nba_fantasy_optimizer/main.py
 
 ## What This Project Demonstrates
 
-- integer programming in practice
-- optimization under constraints
-- applied mathematics for decision systems
-- data pipeline design
-- sports analytics modeling
-- software engineering workflow
-- translating analytics into decisions
-```
+- integer programming applied to real-world decision problems  
+- constraint-based optimization and assignment modeling  
+- portfolio optimization and exposure control  
+- translating analytical outputs into actionable decisions  
+- building scalable and extensible data science systems  
+
+## Advanced Features
+
+### Multi-Lineup Generation
+
+Generates multiple high-quality lineups instead of a single optimal solution, enabling comparison of different roster constructions.
+
+---
+
+### Strategy-Based Optimization
+
+Supports multiple lineup strategies:
+
+- **Overall**: maximize projected points
+- **Premium-Heavy**: prioritize high-salary players
+- **Balanced**: limit high-salary concentration
+
+---
+
+### Player Exposure Constraints
+
+Limits how often a player can appear across generated lineups.
+
+Example:
+- Maximum exposure = 2 out of 3 lineups
+
+This prevents over-reliance on a single player and improves portfolio diversity.
+
+---
+
+### Lineup Diversification
+
+Uses overlap constraints to ensure generated lineups are meaningfully different, rather than minor variations of the same solution.
+
+## Key Insight
+
+Pure projection-based optimization often produces highly similar lineups due to concentrated optimal solutions.
+
+To address this, the optimizer incorporates:
+
+- exposure constraints
+- lineup overlap limits
+- strategy-based rules
+
+This transforms the system from a single-solution optimizer into a **portfolio-based decision engine**.
