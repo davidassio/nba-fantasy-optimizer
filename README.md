@@ -167,6 +167,7 @@ PYTHONPATH=src python src/nba_fantasy_optimizer/main.py
 
 - **V1** — Basic optimizer with salary cap + roster size constraints
 - **V2** — Slot-assignment optimizer with multi-position eligibility
+- **V3** - Generation of multiple lineups with player exposure constraints for diversification
 
 ---
 
@@ -174,11 +175,9 @@ PYTHONPATH=src python src/nba_fantasy_optimizer/main.py
 
 - [x] V1 Basic lineup optimizer
 - [x] V2 Slot-based optimizer
-- [ ] V3 Realistic salary / projection calibration
-- [ ] V4 Multiple lineup generation
-- [ ] V5 Exposure constraints
-- [ ] V6 Live NBA data integration
-- [ ] V7 Historical backtesting dashboard
+- [x] V3 Multiple lineup generation / Exposure constraints
+- [ ] V4 Live NBA data integration
+- [ ] V5 Historical backtesting dashboard
 
 ---
 
